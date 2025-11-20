@@ -2,9 +2,8 @@
 // 1. CONFIGURACIÓN INICIAL
 // -----------------------------------------------------------------
 
-// URL de nuestra API en el backend
-// (Asegúrate de que tu backend 'node index.js' esté corriendo)
-const API_URL = 'http://localhost:9000/api/autos';
+// CAMBIO IMPORTANTE: Ahora apuntamos a RENDER (La Nube)
+const API_URL = 'https://api-autos-pedro.onrender.com/api/autos';
 
 // Referencias a los elementos del DOM (nuestro HTML)
 const autoForm = document.getElementById('autoForm');
@@ -34,23 +33,23 @@ const editAutoId = document.getElementById('editAutoId'); // El input oculto
  * Obtiene todos los autos de la API y los dibuja en la tabla.
  */
 function obtenerAutos() {
-  fetch(API_URL) // fetch() DEVUELVE UNA PROMISE
+  // IMPORTANTE: Render tarda 1 minuto en despertar si está dormido.
+  // Mostramos un mensaje en consola para saber que está intentando conectar.
+  console.log("Intentando conectar con Render...");
 
-    // .then() para manejar el 'resolve' (éxito)
+  fetch(API_URL)
     .then(respuesta => {
-      // La primera promise de fetch solo da la respuesta HTTP.
-      // Necesitamos .json() para obtener los datos, que DEVUELVE OTRA PROMISE.
+      if (!respuesta.ok) throw new Error("Error en la respuesta del servidor");
       return respuesta.json();
     })
     .then(autos => {
-      // Este .then() recibe el resultado del .json() anterior
+      console.log("¡Conectado! Autos recibidos:", autos);
       dibujarTabla(autos);
     })
-
-    // .catch() para manejar el 'reject' (error)
     .catch(error => {
       console.error('Error al obtener autos:', error);
-      alert('No se pudieron cargar los autos. ¿El backend está corriendo?');
+      // Si falla, es probable que Render esté "despertando"
+      // No mostramos alert cada vez para no molestar, pero sí en consola
     });
 }
 
@@ -65,17 +64,16 @@ function crearAuto(datosAuto) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(datosAuto)
-  }) // fetch() DEVUELVE UNA PROMISE
-
+  })
     .then(respuesta => respuesta.json())
     .then(nuevoAuto => {
-      // Éxito:
       console.log('Auto creado:', nuevoAuto);
       resetearFormulario();
-      obtenerAutos(); // Recargamos la tabla
+      obtenerAutos();
     })
     .catch(error => {
       console.error('Error al crear auto:', error);
+      alert("Error al crear. Revisa la consola.");
     });
 }
 
@@ -84,20 +82,18 @@ function crearAuto(datosAuto) {
  * Envía los datos actualizados de un auto a la API.
  */
 function actualizarAuto(id, datosAuto) {
-  fetch(`${API_URL}/${id}`, { // Agregamos el ID a la URL
-    method: 'PUT', // Usamos el método PUT
+  fetch(`${API_URL}/${id}`, {
+    method: 'PUT',
     headers: {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(datosAuto)
-  }) // fetch() DEVUELVE UNA PROMISE
-
+  })
     .then(respuesta => respuesta.json())
     .then(autoActualizado => {
-      // Éxito:
       console.log('Auto actualizado:', autoActualizado);
       resetearFormulario();
-      obtenerAutos(); // Recargamos la tabla
+      obtenerAutos();
     })
     .catch(error => {
       console.error('Error al actualizar auto:', error);
@@ -110,18 +106,16 @@ function actualizarAuto(id, datosAuto) {
  */
 function eliminarAuto(id) {
   if (!confirm('¿Estás seguro de que quieres eliminar este auto?')) {
-    return; // Si el usuario cancela, no hacemos nada
+    return;
   }
 
   fetch(`${API_URL}/${id}`, {
     method: 'DELETE'
-  }) // fetch() DEVUELVE UNA PROMISE
-
+  })
     .then(respuesta => respuesta.json())
     .then(resultado => {
-      // Éxito:
-      console.log(resultado.msg); // Muestra "Auto eliminado"
-      obtenerAutos(); // Recargamos la tabla
+      console.log(resultado.msg);
+      obtenerAutos();
     })
     .catch(error => {
       console.error('Error al eliminar auto:', error);
@@ -132,26 +126,21 @@ function eliminarAuto(id) {
 // 3. FUNCIONES AUXILIARES (Lógica del Frontend)
 // -----------------------------------------------------------------
 
-/**
- * Dibuja las filas en la tabla con los datos de los autos.
- */
 function dibujarTabla(autos) {
-  tablaAutosBody.innerHTML = ''; // Limpia la tabla
+  tablaAutosBody.innerHTML = '';
 
   if (autos.length === 0) {
-    tablaAutosBody.innerHTML = '<tr><td colspan="6" class="text-center">No hay autos registrados.</td></tr>';
+    tablaAutosBody.innerHTML = '<tr><td colspan="6" class="text-center">No hay autos registrados o Render está despertando...</td></tr>';
     return;
   }
 
   autos.forEach(auto => {
     const fila = document.createElement('tr');
-
-    // Usamos 'auto._id' que es como Mongo llama al ID
     fila.innerHTML = `
       <td>${auto.marca}</td>
       <td>${auto.modelo}</td>
       <td>${auto.anio}</td>
-      <td>$${auto.precio.toLocaleString()}</td>
+      <td>$${Number(auto.precio).toLocaleString()}</td>
       <td>${auto.transmision}</td>
       <td class="text-end">
         <button class="btn btn-warning btn-sm btn-editar" data-id="${auto._id}">
@@ -166,19 +155,13 @@ function dibujarTabla(autos) {
   });
 }
 
-/**
- * Maneja el envío del formulario (ya sea para Crear o Actualizar).
- */
 function manejarSubmit(e) {
-  e.preventDefault(); // Evita que la página se recargue
+  e.preventDefault();
 
   if (!autoForm.checkValidity()) {
-    // Si el formulario no es válido (campos requeridos faltantes),
-    // Bootstrap mostrará los mensajes de error y no hacemos nada.
     return;
   }
 
-  // Recolectamos todos los datos del formulario
   const datosAuto = {
     marca: document.getElementById('id_marca').value,
     modelo: document.getElementById('id_modelo').value,
@@ -192,81 +175,32 @@ function manejarSubmit(e) {
     descripcion: document.getElementById('id_descripcion').value
   };
 
-  const id = editAutoId.value; // Leemos el ID del input oculto
+  const id = editAutoId.value;
 
   if (id) {
-    // Si hay un ID, es una ACTUALIZACIÓN (Update)
     actualizarAuto(id, datosAuto);
   } else {
-    // Si no hay ID, es una CREACIÓN (Create)
     crearAuto(datosAuto);
   }
 }
 
-/**
- * Maneja los clics en la tabla (para Editar y Eliminar).
- * Usamos "delegación de eventos".
- */
 function manejarClicsTabla(e) {
-  // Verificamos si el clic fue en un botón de editar
   if (e.target.classList.contains('btn-editar') || e.target.closest('.btn-editar')) {
     const id = e.target.dataset.id || e.target.closest('.btn-editar').dataset.id;
     prepararEdicion(id);
   }
 
-  // Verificamos si el clic fue en un botón de eliminar
   if (e.target.classList.contains('btn-eliminar') || e.target.closest('.btn-eliminar')) {
     const id = e.target.dataset.id || e.target.closest('.btn-eliminar').dataset.id;
     eliminarAuto(id);
   }
 }
 
-/**
- * Prepara el formulario para editar un auto.
- * Busca el auto por ID y rellena el formulario con sus datos.
- */
 function prepararEdicion(id) {
-  // Hacemos un fetch para obtener los datos de ESE auto en específico
-  fetch(`${API_URL}/${id}`) // Esto no existe... ¡Error!
-  // CORRECCIÓN: No necesitamos hacer un fetch. Ya tenemos los datos...
-  // Ah, no, no los tenemos. Un fetch es la forma más limpia.
-
-  // ¡MI ERROR! No hemos creado la ruta "GET /api/autos/:id" en el backend.
-  // ¡Vamos a agregarla! Es un segundo.
-  // ...
-  // NO, no la compliquemos. Es más fácil:
-  // Cuando cargamos los datos para editar, buscamos el auto en la API
-  // ¡Momento! La ruta para "obtener un auto" no está en el backend.
-
-  // ---
-  // CORRECCIÓN IMPORTANTE:
-  // Para que "Editar" funcione, necesitamos una ruta en el backend
-  // que nos dé los datos de UN SOLO auto.
-  //
-  // Ve a tu archivo `crud-backend/routes/autos.js`
-  // Y AÑADE este código (antes del `module.exports`):
-  /*
-    // --- R: LEER (Consultar UNO) ---
-    router.get('/:id', async (req, res) => {
-      try {
-        const auto = await Auto.findById(req.params.id);
-        if (!auto) {
-          return res.status(404).json({ msg: 'Auto no encontrado' });
-        }
-        res.json(auto);
-      } catch (error) {
-        res.status(500).json({ msg: 'Error al buscar el auto' });
-      }
-    });
-  */
-  // ---
-  // ¡Ahora sí! Con esa ruta añadida en el backend (y reiniciándolo),
-  // este código JS del frontend funcionará:
-
-  fetch(`${API_URL}/${id}`) // Pedimos el auto por ID (PROMISE)
+  // OJO: Esta función requiere que tu backend en Render tenga la ruta GET /:id
+  fetch(`${API_URL}/${id}`)
     .then(res => res.json())
     .then(auto => {
-      // Rellenamos el formulario
       document.getElementById('id_marca').value = auto.marca;
       document.getElementById('id_modelo').value = auto.modelo;
       document.getElementById('id_anio').value = auto.anio;
@@ -278,49 +212,28 @@ function prepararEdicion(id) {
       document.getElementById('id_imagenUrl').value = auto.imagenUrl;
       document.getElementById('id_descripcion').value = auto.descripcion;
 
-      // Guardamos el ID en el input oculto
       editAutoId.value = auto._id;
 
-      // Cambiamos el botón
       submitButton.textContent = 'Actualizar Auto';
-      cancelButton.classList.remove('d-none'); // Mostramos el botón "Cancelar"
-      autoForm.classList.remove('was-validated'); // Limpia validaciones
-
-      // Mueve la pantalla al formulario
+      cancelButton.classList.remove('d-none');
+      autoForm.classList.remove('was-validated');
       autoForm.scrollIntoView({ behavior: 'smooth' });
     })
     .catch(err => console.error('Error al cargar auto para editar:', err));
 }
 
-
-/**
- * Limpia el formulario y lo resetea a su estado original.
- */
 function resetearFormulario() {
-  autoForm.reset(); // Limpia todos los inputs
-  autoForm.classList.remove('was-validated'); // Quita los mensajes de validación
-
-  editAutoId.value = ''; // Limpia el ID oculto
-
-  submitButton.textContent = 'Agregar Auto'; // Resetea el botón
-  cancelButton.classList.add('d-none'); // Oculta el botón "Cancelar"
+  autoForm.reset();
+  autoForm.classList.remove('was-validated');
+  editAutoId.value = '';
+  submitButton.textContent = 'Agregar Auto';
+  cancelButton.classList.add('d-none');
 }
 
-
 // -----------------------------------------------------------------
-// 4. EVENT LISTENERS (Los "oídos" de la app)
+// 4. EVENT LISTENERS
 // -----------------------------------------------------------------
-
-// 1. Cuando el contenido de la página cargue, busca los autos.
 document.addEventListener('DOMContentLoaded', obtenerAutos);
-
-// 2. Cuando se envíe el formulario, llama a 'manejarSubmit'.
 autoForm.addEventListener('submit', manejarSubmit);
-
-// 3. Cuando se haga clic en el botón "Cancelar", resetea el formulario.
 cancelButton.addEventListener('click', resetearFormulario);
-
-// 4. Cuando se haga clic EN CUALQUIER LUGAR de la tabla, llama a 'manejarClicsTabla'.
 tablaAutosBody.addEventListener('click', manejarClicsTabla);
-
-
