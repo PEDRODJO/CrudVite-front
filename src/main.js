@@ -2,15 +2,17 @@
 // 1. CONFIGURACIÓN INICIAL
 // -----------------------------------------------------------------
 
-// CAMBIO IMPORTANTE: Ahora apuntamos a RENDER (La Nube)
+// URL de Render
 const API_URL = 'https://api-autos-pedro.onrender.com/api/autos';
 
-// Referencias a los elementos del DOM (nuestro HTML)
+// Referencias a los elementos del DOM
 const autoForm = document.getElementById('autoForm');
 const tablaAutosBody = document.getElementById('tablaAutosBody');
 const submitButton = document.getElementById('submitButton');
 const cancelButton = document.getElementById('cancelButton');
-const editAutoId = document.getElementById('editAutoId'); // El input oculto
+const editAutoId = document.getElementById('editAutoId');
+// NUEVO: Referencia al loader
+const loader = document.getElementById('loader');
 
 // Validaciones de Bootstrap
 (function () {
@@ -25,16 +27,10 @@ const editAutoId = document.getElementById('editAutoId'); // El input oculto
 })();
 
 // -----------------------------------------------------------------
-// 2. OPERACIONES CRUD (AQUÍ USAMOS PROMISES)
+// 2. OPERACIONES CRUD
 // -----------------------------------------------------------------
 
-/**
- * R: LEER (Read)
- * Obtiene todos los autos de la API y los dibuja en la tabla.
- */
 function obtenerAutos() {
-  // IMPORTANTE: Render tarda 1 minuto en despertar si está dormido.
-  // Mostramos un mensaje en consola para saber que está intentando conectar.
   console.log("Intentando conectar con Render...");
 
   fetch(API_URL)
@@ -43,94 +39,84 @@ function obtenerAutos() {
       return respuesta.json();
     })
     .then(autos => {
-      console.log("¡Conectado! Autos recibidos:", autos);
+      console.log("Autos recibidos:", autos);
       dibujarTabla(autos);
     })
     .catch(error => {
       console.error('Error al obtener autos:', error);
-      // Si falla, es probable que Render esté "despertando"
-      // No mostramos alert cada vez para no molestar, pero sí en consola
+    })
+    .finally(() => {
+      // NUEVO: Esto apaga el loader pase lo que pase (éxito o error)
+      if (loader) loader.style.display = 'none';
     });
 }
 
-/**
- * C: CREAR (Create)
- * Envía un nuevo auto a la API.
- */
 function crearAuto(datosAuto) {
+  // Mostrar loader al guardar
+  if(loader) loader.style.display = 'flex';
+
   fetch(API_URL, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(datosAuto)
   })
     .then(respuesta => respuesta.json())
     .then(nuevoAuto => {
-      console.log('Auto creado:', nuevoAuto);
       resetearFormulario();
       obtenerAutos();
     })
     .catch(error => {
       console.error('Error al crear auto:', error);
-      alert("Error al crear. Revisa la consola.");
+      if(loader) loader.style.display = 'none'; // Ocultar si falla
     });
 }
 
-/**
- * U: ACTUALIZAR (Update)
- * Envía los datos actualizados de un auto a la API.
- */
 function actualizarAuto(id, datosAuto) {
+  if(loader) loader.style.display = 'flex';
+
   fetch(`${API_URL}/${id}`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json'
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(datosAuto)
   })
     .then(respuesta => respuesta.json())
     .then(autoActualizado => {
-      console.log('Auto actualizado:', autoActualizado);
       resetearFormulario();
       obtenerAutos();
     })
     .catch(error => {
       console.error('Error al actualizar auto:', error);
+      if(loader) loader.style.display = 'none';
     });
 }
 
-/**
- * D: ELIMINAR (Delete)
- * Pide a la API que elimine un auto por su ID.
- */
 function eliminarAuto(id) {
   if (!confirm('¿Estás seguro de que quieres eliminar este auto?')) {
     return;
   }
 
-  fetch(`${API_URL}/${id}`, {
-    method: 'DELETE'
-  })
+  if(loader) loader.style.display = 'flex';
+
+  fetch(`${API_URL}/${id}`, { method: 'DELETE' })
     .then(respuesta => respuesta.json())
     .then(resultado => {
-      console.log(resultado.msg);
       obtenerAutos();
     })
     .catch(error => {
       console.error('Error al eliminar auto:', error);
+      if(loader) loader.style.display = 'none';
     });
 }
 
 // -----------------------------------------------------------------
-// 3. FUNCIONES AUXILIARES (Lógica del Frontend)
+// 3. FUNCIONES AUXILIARES
 // -----------------------------------------------------------------
 
 function dibujarTabla(autos) {
   tablaAutosBody.innerHTML = '';
 
   if (autos.length === 0) {
-    tablaAutosBody.innerHTML = '<tr><td colspan="6" class="text-center">No hay autos registrados o Render está despertando...</td></tr>';
+    tablaAutosBody.innerHTML = '<tr><td colspan="6" class="text-center">No hay autos registrados.</td></tr>';
     return;
   }
 
@@ -157,10 +143,7 @@ function dibujarTabla(autos) {
 
 function manejarSubmit(e) {
   e.preventDefault();
-
-  if (!autoForm.checkValidity()) {
-    return;
-  }
+  if (!autoForm.checkValidity()) return;
 
   const datosAuto = {
     marca: document.getElementById('id_marca').value,
@@ -176,7 +159,6 @@ function manejarSubmit(e) {
   };
 
   const id = editAutoId.value;
-
   if (id) {
     actualizarAuto(id, datosAuto);
   } else {
@@ -197,7 +179,8 @@ function manejarClicsTabla(e) {
 }
 
 function prepararEdicion(id) {
-  // OJO: Esta función requiere que tu backend en Render tenga la ruta GET /:id
+  if(loader) loader.style.display = 'flex'; // Mostrar loader al buscar datos
+
   fetch(`${API_URL}/${id}`)
     .then(res => res.json())
     .then(auto => {
@@ -219,7 +202,10 @@ function prepararEdicion(id) {
       autoForm.classList.remove('was-validated');
       autoForm.scrollIntoView({ behavior: 'smooth' });
     })
-    .catch(err => console.error('Error al cargar auto para editar:', err));
+    .catch(err => console.error('Error al cargar auto para editar:', err))
+    .finally(() => {
+       if(loader) loader.style.display = 'none'; // Ocultar loader
+    });
 }
 
 function resetearFormulario() {
@@ -230,9 +216,7 @@ function resetearFormulario() {
   cancelButton.classList.add('d-none');
 }
 
-// -----------------------------------------------------------------
-// 4. EVENT LISTENERS
-// -----------------------------------------------------------------
+// Event Listeners
 document.addEventListener('DOMContentLoaded', obtenerAutos);
 autoForm.addEventListener('submit', manejarSubmit);
 cancelButton.addEventListener('click', resetearFormulario);
