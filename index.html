@@ -3,69 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRUD de Autos (Promises)</title>
+    <title>Gestión de Automóviles</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Iconos -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <!-- Estilos Personalizados -->
+    <style>
+        /* Animaciones */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .slide-in { animation: fadeIn 0.6s ease-out; }
+
+        /* Modo Oscuro */
+        body.dark-mode { background-color: #212529; color: #f8f9fa; }
+        body.dark-mode .card { background-color: #2c3034; border-color: #495057; color: #fff; }
+        body.dark-mode .form-control, body.dark-mode .form-select { background-color: #212529; border-color: #495057; color: #fff; }
+        body.dark-mode .table { color: #fff; }
+        body.dark-mode .table-light th { background-color: #343a40; color: #fff; border-color: #454d55; }
+        body.dark-mode .table-striped>tbody>tr:nth-of-type(odd)>* { color: #fff; background-color: #373b3e; }
+
+        /* Loader */
+        #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; display: flex; justify-content: center; align-items: center; flex-direction: column; transition: opacity 0.5s; }
+        body.dark-mode #loader { background: rgba(33,37,41,0.9); }
+    </style>
 </head>
 <body>
 
-    <div class="container my-5">
-        <h1 class="text-center mb-4">Gestión de Automóviles</h1>
+    <!-- Loader Inicial (Se oculta con JS) -->
+    <div id="loader">
+        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
+        <p class="mt-3 fw-bold">Cargando Sistema...</p>
+    </div>
 
-        <div class="row">
+    <!-- Botón Modo Oscuro -->
+    <button id="btnTema" class="btn btn-dark position-fixed top-0 end-0 m-3 shadow" style="z-index: 1000;">
+        <i class="bi bi-moon-stars-fill"></i>
+    </button>
+
+    <div class="text-center mt-5 slide-in"><h1>GESTIÓN DE AUTOMÓVILES</h1></div>
+
+    <div class="container mt-4 mb-5 slide-in">
+
+        <div class="row g-4">
+            <!-- FORMULARIO DE AUTOS (Validado) -->
             <div class="col-lg-12">
-                <div class="card shadow-sm mb-4">
+                <div class="card h-100 shadow-sm">
                     <div class="card-body">
-
+                        <!-- 'novalidate' permite que Bootstrap maneje los errores visuales -->
                         <form class="row g-3 needs-validation" id="autoForm" novalidate>
-                            <h2 class="h4">Registrar Nuevo Auto</h2>
+                            <h4 class="card-title mb-3"><i class="bi bi-car-front-fill me-2"></i>Datos del Vehículo</h4>
+                            <input type="hidden" id="editAutoId"> <!-- ID oculto para editar -->
 
-                            <input type="hidden" id="editAutoId">
-
+                            <!-- Fila 1 -->
                             <div class="col-md-4">
-                                <label for="id_marca" class="form-label">Marca:</label>
-                                <input type="text" class="form-control" id="id_marca" placeholder="Ej: Nissan" required>
-                                <div class="invalid-feedback">Ingresa la marca</div>
+                                <label for="id_marca" class="form-label">Marca</label>
+                                <input type="text" class="form-control" id="id_marca" placeholder="Ej: Toyota" required>
+                                <div class="invalid-feedback">Por favor ingresa la marca.</div>
                             </div>
                             <div class="col-md-4">
-                                <label for="id_modelo" class="form-label">Modelo:</label>
-                                <input type="text" class="form-control" id="id_modelo" placeholder="Ej: Versa" required>
-                                <div class="invalid-feedback">Ingresa el modelo</div>
+                                <label for="id_modelo" class="form-label">Modelo</label>
+                                <input type="text" class="form-control" id="id_modelo" placeholder="Ej: Corolla" required>
+                                <div class="invalid-feedback">Por favor ingresa el modelo.</div>
                             </div>
                             <div class="col-md-4">
-                                <label for="id_anio" class="form-label">Año:</label>
-                                <input type="number" class="form-control" id="id_anio" placeholder="Ej: 2024" required min="1900">
-                                <div class="invalid-feedback">Ingresa un año válido</div>
-                            </div>
-
-                            <div class="col-md-4">
-                                <label for="id_precio" class="form-label">Precio (MXN):</label>
-                                <input type="number" class="form-control" id="id_precio" placeholder="Ej: 250000" required min="0">
-                                <div class="invalid-feedback">Ingresa un precio válido</div>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="id_kilometraje" class="form-label">Kilometraje (km):</label>
-                                <input type="number" class="form-control" id="id_kilometraje" placeholder="Ej: 50000" required min="0">
-                                <div class="invalid-feedback">Ingresa un kilometraje válido</div>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="id_color" class="form-label">Color:</label>
-                                <input type="text" class="form-control" id="id_color" placeholder="Ej: Rojo">
+                                <label for="id_anio" class="form-label">Año</label>
+                                <input type="number" class="form-control" id="id_anio" placeholder="Ej: 2024" min="1900" max="2026" required>
+                                <div class="invalid-feedback">Ingresa un año válido.</div>
                             </div>
 
-                            <div class="col-md-6">
-                                <label for="id_transmision" class="form-label">Transmisión:</label>
+                            <!-- Fila 2 -->
+                            <div class="col-md-4">
+                                <label for="id_precio" class="form-label">Precio (MXN)</label>
+                                <input type="number" class="form-control" id="id_precio" placeholder="Ej: 350000" min="0" required>
+                                <div class="invalid-feedback">El precio es obligatorio.</div>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="id_transmision" class="form-label">Transmisión</label>
                                 <select class="form-select" id="id_transmision" required>
                                     <option selected disabled value="">Elegir...</option>
                                     <option value="manual">Manual</option>
                                     <option value="automatica">Automática</option>
                                 </select>
-                                <div class="invalid-feedback">Selecciona la transmisión</div>
+                                <div class="invalid-feedback">Selecciona una transmisión.</div>
                             </div>
-                            <div class="col-md-6">
-                                <label for="id_combustible" class="form-label">Combustible:</label>
+                            <div class="col-md-4">
+                                <label for="id_combustible" class="form-label">Combustible</label>
                                 <select class="form-select" id="id_combustible" required>
                                     <option selected disabled value="">Elegir...</option>
                                     <option value="gasolina">Gasolina</option>
@@ -73,57 +97,83 @@
                                     <option value="electrico">Eléctrico</option>
                                     <option value="hibrido">Híbrido</option>
                                 </select>
-                                <div class="invalid-feedback">Selecciona el combustible</div>
+                                <div class="invalid-feedback">Selecciona el tipo de combustible.</div>
                             </div>
 
-                            <div class="col-md-12">
-                                <label for="id_imagenUrl" class="form-label">URL de Imagen (Opcional):</label>
-                                <input type="text" class="form-control" id="id_imagenUrl" placeholder="https://ejemplo.com/foto.jpg">
-                            </div>
-                            <div class="col-md-12">
-                                <label for="id_descripcion" class="form-label">Descripción (Opcional):</label>
-                                <textarea class="form-control" id="id_descripcion" rows="2" placeholder="Cualquier detalle adicional..."></textarea>
-                            </div>
+                            <!-- Campos ocultos para el backend (Valores por defecto) -->
+                             <input type="hidden" id="id_kilometraje" value="0">
+                             <input type="hidden" id="id_color" value="N/A">
+                             <input type="hidden" id="id_imagenUrl" value="">
+                             <input type="hidden" id="id_descripcion" value="">
 
-                            <div class="col-12 mt-4">
-                                <button type="submit" id="submitButton" class="btn btn-primary w-100">Agregar Auto</button>
-                                <button type="button" id="cancelButton" class="btn btn-secondary w-100 mt-2 d-none">Cancelar Edición</button>
+                            <!-- Botones -->
+                            <div class="col-12 mt-4 d-flex gap-2">
+                                <button type="submit" id="submitButton" class="btn btn-primary flex-grow-1">
+                                    <i class="bi bi-save me-2"></i>Guardar Auto
+                                </button>
+                                <button type="button" id="cancelButton" class="btn btn-secondary d-none">
+                                    Cancelar
+                                </button>
                             </div>
                         </form>
                     </div>
                 </div>
             </div>
 
+            <!-- FILTROS VISUALES (Solo HTML, sin lógica compleja JS) -->
             <div class="col-lg-12">
                 <div class="card shadow-sm">
                     <div class="card-body">
-                        <h2 class="text-center">Autos Registrados</h2>
+                        <h5><i class="bi bi-funnel me-2"></i>Filtros de Búsqueda</h5>
+                        <div class="row g-2 mt-2">
+                            <div class="col-md-4"><input type="search" class="form-control" placeholder="Buscar por marca..."></div>
+                            <div class="col-md-4"><input type="number" class="form-control" placeholder="Precio máximo"></div>
+                            <div class="col-md-4">
+                                <select class="form-select">
+                                    <option value="all">Todas las transmisiones</option>
+                                    <option value="manual">Manual</option>
+                                    <option value="automatica">Automática</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                        <div class="table-responsive-sm shadow-sm">
-                            <table class="table table-striped table-hover align-middle">
+            <!-- TABLA DE DATOS -->
+            <div class="col-lg-12">
+                <div class="card shadow-sm">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover align-middle mb-0">
                                 <thead class="table-dark">
                                     <tr>
-                                        <th>Marca</th>
-                                        <th>Modelo</th>
+                                        <th>Marca y Modelo</th>
                                         <th>Año</th>
                                         <th>Precio</th>
                                         <th>Transmisión</th>
+                                        <th>Combustible</th>
                                         <th class="text-end">Acciones</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tablaAutosBody">
-                                    </tbody>
+                                    <!-- Aquí se insertarán los datos con JavaScript -->
+                                </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <!-- Scripts de Bootstrap -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-    <script src="main.js"></script>
-    <script type="module" src="/main.js"></script>
+    <!-- IMPORTANTE: Enlace correcto al JS para Vite (Type Module) -->
+
+    <script type="module" src="./src/main.js"></script>
+
 </body>
 </html>
